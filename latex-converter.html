@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaTeX ↔ Text Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 60px 1fr;
+            gap: 15px;
+            align-items: start;
+        }
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .panel h3 {
+            margin-top: 0;
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .arrow-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-top: 60px;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+        .btn-arrow {
+            background: #3498db;
+            color: white;
+        }
+        .btn-arrow:hover {
+            background: #2980b9;
+            transform: scale(1.1);
+        }
+        .btn-copy {
+            background: #27ae60;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+            margin-top: 10px;
+        }
+        .btn-copy:hover {
+            background: #219a52;
+        }
+        .btn-clear {
+            background: #e74c3c;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+            margin-top: 10px;
+            margin-left: 5px;
+        }
+        .btn-clear:hover {
+            background: #c0392b;
+        }
+        .preview {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fafbfc;
+            border-radius: 8px;
+            min-height: 50px;
+            border: 1px dashed #ddd;
+        }
+        .preview-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+        .examples {
+            margin-top: 30px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .examples h3 {
+            margin-top: 0;
+            color: #34495e;
+        }
+        .example-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .example-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 13px;
+        }
+        .example-item:hover {
+            background: #e8f4f8;
+        }
+        .example-item code {
+            display: block;
+            color: #8e44ad;
+            font-size: 12px;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2ecc71;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .button-row {
+            display: flex;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LaTeX ↔ Text Converter</h1>
+    <p class="subtitle">Convert mathematical notation between LaTeX and readable text</p>
+
+    <div class="container">
+        <div class="panel">
+            <h3>📝 LaTeX Input</h3>
+            <textarea id="latexInput" placeholder="Enter LaTeX formula...&#10;Example: $\text{Mid}_{shoulder} = (P_{L.sh} + P_{R.sh}) / 2$"></textarea>
+            <div class="preview-label">Rendered Preview:</div>
+            <div class="preview" id="latexPreview"></div>
+            <div class="button-row">
+                <button class="btn btn-copy" onclick="copyText('latexInput')">📋 Copy</button>
+                <button class="btn btn-clear" onclick="clearField('latexInput')">🗑 Clear</button>
+            </div>
+        </div>
+
+        <div class="arrow-container">
+            <button class="btn btn-arrow" onclick="latexToText()" title="LaTeX → Text">→</button>
+            <button class="btn btn-arrow" onclick="textToLatex()" title="Text → LaTeX">←</button>
+        </div>
+
+        <div class="panel">
+            <h3>📄 Text Output</h3>
+            <textarea id="textOutput" placeholder="Readable text will appear here..."></textarea>
+            <div class="preview-label">Text Preview:</div>
+            <div class="preview" id="textPreview"></div>
+            <div class="button-row">
+                <button class="btn btn-copy" onclick="copyText('textOutput')">📋 Copy</button>
+                <button class="btn btn-clear" onclick="clearField('textOutput')">🗑 Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="examples">
+        <h3>📚 Common Examples (Click to use)</h3>
+        <div class="example-grid">
+            <div class="example-item" onclick="useExample('$\\text{Mid}_{shoulder} = (P_{L.sh} + P_{R.sh}) / 2$')">
+                <span>Midpoint calculation</span>
+                <code>$\text{Mid}_{shoulder} = (P_{L.sh} + P_{R.sh}) / 2$</code>
+            </div>
+            <div class="example-item" onclick="useExample('$\\bar{x} = \\frac{1}{n}\\sum_{i=1}^{n} x_i$')">
+                <span>Mean formula</span>
+                <code>$\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i$</code>
+            </div>
+            <div class="example-item" onclick="useExample('$\\sigma = \\sqrt{\\frac{\\sum(x_i - \\mu)^2}{N}}$')">
+                <span>Standard deviation</span>
+                <code>$\sigma = \sqrt{\frac{\sum(x_i - \mu)^2}{N}}$</code>
+            </div>
+            <div class="example-item" onclick="useExample('$R^2 = 1 - \\frac{SS_{res}}{SS_{tot}}$')">
+                <span>R-squared</span>
+                <code>$R^2 = 1 - \frac{SS_{res}}{SS_{tot}}$</code>
+            </div>
+            <div class="example-item" onclick="useExample('$\\theta_{hip} = \\arctan\\left(\\frac{y_{knee} - y_{hip}}{x_{knee} - x_{hip}}\\right)$')">
+                <span>Joint angle</span>
+                <code>$\theta_{hip} = \arctan(...)</code>
+            </div>
+            <div class="example-item" onclick="useExample('$EMG_{RMS} = \\sqrt{\\frac{1}{T}\\int_0^T x(t)^2 dt}$')">
+                <span>EMG RMS</span>
+                <code>$EMG_{RMS} = \sqrt{\frac{1}{T}\int_0^T x(t)^2 dt}$</code>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        // LaTeX to Text conversion rules
+        const latexToTextRules = [
+            // Remove dollar signs
+            [/\$+/g, ''],
+            // Text command
+            [/\\text\{([^}]+)\}/g, '$1'],
+            [/\\textbf\{([^}]+)\}/g, '$1'],
+            [/\\textit\{([^}]+)\}/g, '$1'],
+            [/\\mathrm\{([^}]+)\}/g, '$1'],
+            [/\\mathbf\{([^}]+)\}/g, '$1'],
+            // Fractions
+            [/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)'],
+            [/\\dfrac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)'],
+            // Square root
+            [/\\sqrt\{([^}]+)\}/g, '√($1)'],
+            [/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, '$1√($2)'],
+            // Subscripts and superscripts
+            [/\_{([^}]+)}/g, '_$1'],
+            [/\_([a-zA-Z0-9])/g, '_$1'],
+            [/\^{([^}]+)}/g, '^$1'],
+            [/\^([a-zA-Z0-9])/g, '^$1'],
+            // Greek letters
+            [/\\alpha/g, 'α'], [/\\beta/g, 'β'], [/\\gamma/g, 'γ'],
+            [/\\delta/g, 'δ'], [/\\epsilon/g, 'ε'], [/\\zeta/g, 'ζ'],
+            [/\\eta/g, 'η'], [/\\theta/g, 'θ'], [/\\iota/g, 'ι'],
+            [/\\kappa/g, 'κ'], [/\\lambda/g, 'λ'], [/\\mu/g, 'μ'],
+            [/\\nu/g, 'ν'], [/\\xi/g, 'ξ'], [/\\pi/g, 'π'],
+            [/\\rho/g, 'ρ'], [/\\sigma/g, 'σ'], [/\\tau/g, 'τ'],
+            [/\\upsilon/g, 'υ'], [/\\phi/g, 'φ'], [/\\chi/g, 'χ'],
+            [/\\psi/g, 'ψ'], [/\\omega/g, 'ω'],
+            [/\\Gamma/g, 'Γ'], [/\\Delta/g, 'Δ'], [/\\Theta/g, 'Θ'],
+            [/\\Lambda/g, 'Λ'], [/\\Xi/g, 'Ξ'], [/\\Pi/g, 'Π'],
+            [/\\Sigma/g, 'Σ'], [/\\Phi/g, 'Φ'], [/\\Psi/g, 'Ψ'],
+            [/\\Omega/g, 'Ω'],
+            // Operators
+            [/\\sum/g, 'Σ'], [/\\prod/g, 'Π'], [/\\int/g, '∫'],
+            [/\\partial/g, '∂'], [/\\infty/g, '∞'], [/\\approx/g, '≈'],
+            [/\\neq/g, '≠'], [/\\leq/g, '≤'], [/\\geq/g, '≥'],
+            [/\\pm/g, '±'], [/\\times/g, '×'], [/\\div/g, '÷'],
+            [/\\cdot/g, '·'], [/\\ldots/g, '...'], [/\\cdots/g, '···'],
+            // Functions
+            [/\\sin/g, 'sin'], [/\\cos/g, 'cos'], [/\\tan/g, 'tan'],
+            [/\\arcsin/g, 'arcsin'], [/\\arccos/g, 'arccos'], [/\\arctan/g, 'arctan'],
+            [/\\log/g, 'log'], [/\\ln/g, 'ln'], [/\\exp/g, 'exp'],
+            [/\\lim/g, 'lim'], [/\\max/g, 'max'], [/\\min/g, 'min'],
+            // Brackets
+            [/\\left\(/g, '('], [/\\right\)/g, ')'],
+            [/\\left\[/g, '['], [/\\right\]/g, ']'],
+            [/\\left\{/g, '{'], [/\\right\}/g, '}'],
+            [/\\left\|/g, '|'], [/\\right\|/g, '|'],
+            // Special
+            [/\\bar\{([^}]+)\}/g, '$1̄'],
+            [/\\hat\{([^}]+)\}/g, '$1̂'],
+            [/\\vec\{([^}]+)\}/g, '$1→'],
+            [/\\overline\{([^}]+)\}/g, '$1̄'],
+            // Clean up
+            [/\s+/g, ' '],
+            [/\\ /g, ' '],
+        ];
+
+        // Text to LaTeX conversion rules
+        const textToLatexRules = [
+            // Greek letters (reverse)
+            [/α/g, '\\alpha'], [/β/g, '\\beta'], [/γ/g, '\\gamma'],
+            [/δ/g, '\\delta'], [/ε/g, '\\epsilon'], [/ζ/g, '\\zeta'],
+            [/η/g, '\\eta'], [/θ/g, '\\theta'], [/ι/g, '\\iota'],
+            [/κ/g, '\\kappa'], [/λ/g, '\\lambda'], [/μ/g, '\\mu'],
+            [/ν/g, '\\nu'], [/ξ/g, '\\xi'], [/π/g, '\\pi'],
+            [/ρ/g, '\\rho'], [/σ/g, '\\sigma'], [/τ/g, '\\tau'],
+            [/υ/g, '\\upsilon'], [/φ/g, '\\phi'], [/χ/g, '\\chi'],
+            [/ψ/g, '\\psi'], [/ω/g, '\\omega'],
+            [/Γ/g, '\\Gamma'], [/Δ/g, '\\Delta'], [/Θ/g, '\\Theta'],
+            [/Λ/g, '\\Lambda'], [/Ξ/g, '\\Xi'], [/Π/g, '\\Pi'],
+            [/Σ/g, '\\Sigma'], [/Φ/g, '\\Phi'], [/Ψ/g, '\\Psi'],
+            [/Ω/g, '\\Omega'],
+            // Operators
+            [/√/g, '\\sqrt'], [/∞/g, '\\infty'], [/≈/g, '\\approx'],
+            [/≠/g, '\\neq'], [/≤/g, '\\leq'], [/≥/g, '\\geq'],
+            [/±/g, '\\pm'], [/×/g, '\\times'], [/÷/g, '\\div'],
+            [/·/g, '\\cdot'], [/∫/g, '\\int'], [/∂/g, '\\partial'],
+            // Subscripts with multiple chars
+            [/_([a-zA-Z0-9]{2,})/g, '_{$1}'],
+            [/\^([a-zA-Z0-9]{2,})/g, '^{$1}'],
+        ];
+
+        function latexToText() {
+            let latex = document.getElementById('latexInput').value;
+            let text = latex;
+            
+            for (const [pattern, replacement] of latexToTextRules) {
+                text = text.replace(pattern, replacement);
+            }
+            
+            // Handle nested fractions (run multiple times)
+            for (let i = 0; i < 3; i++) {
+                text = text.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)');
+            }
+            
+            document.getElementById('textOutput').value = text.trim();
+            updatePreviews();
+        }
+
+        function textToLatex() {
+            let text = document.getElementById('textOutput').value;
+            let latex = text;
+            
+            for (const [pattern, replacement] of textToLatexRules) {
+                latex = latex.replace(pattern, replacement);
+            }
+            
+            // Wrap in dollar signs if not present
+            if (!latex.startsWith('$')) {
+                latex = '$' + latex + '$';
+            }
+            
+            document.getElementById('latexInput').value = latex;
+            updatePreviews();
+        }
+
+        function updatePreviews() {
+            const latexInput = document.getElementById('latexInput').value;
+            const textOutput = document.getElementById('textOutput').value;
+            
+            // Render LaTeX preview
+            const latexPreview = document.getElementById('latexPreview');
+            try {
+                const cleanLatex = latexInput.replace(/^\$+|\$+$/g, '');
+                if (cleanLatex) {
+                    katex.render(cleanLatex, latexPreview, { throwOnError: false, displayMode: true });
+                } else {
+                    latexPreview.innerHTML = '<span style="color:#999">Enter LaTeX to preview</span>';
+                }
+            } catch (e) {
+                latexPreview.innerHTML = '<span style="color:#e74c3c">Invalid LaTeX</span>';
+            }
+            
+            // Text preview
+            document.getElementById('textPreview').textContent = textOutput || 'Converted text will appear here';
+        }
+
+        function copyText(elementId) {
+            const text = document.getElementById(elementId).value;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard!');
+            });
+        }
+
+        function clearField(elementId) {
+            document.getElementById(elementId).value = '';
+            updatePreviews();
+        }
+
+        function useExample(latex) {
+            document.getElementById('latexInput').value = latex;
+            updatePreviews();
+            latexToText();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Live preview on input
+        document.getElementById('latexInput').addEventListener('input', updatePreviews);
+        document.getElementById('textOutput').addEventListener('input', () => {
+            document.getElementById('textPreview').textContent = document.getElementById('textOutput').value;
+        });
+
+        // Initial preview
+        updatePreviews();
+    </script>
+</body>
+</html>
